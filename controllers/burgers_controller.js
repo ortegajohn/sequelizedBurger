@@ -1,45 +1,52 @@
 var express = require("express");
 
 var router = express.Router();
+var db = require("../models");
 
-// Import the model (cat.js) to use its database functions.
-var burger = require("../models/burger.js");
 
 router.get("/", function(req, res) {
-    burger.all(function(data) {
+
+    db.Burgers.findAll({}).then(function(dbBurger) {
+
+      var obj_length = Object.keys(dbBurger);
+
+      var RowDataPacket_container = []
+      for(i=0;i<obj_length.length;i++){
+        RowDataPacket_container[i] = dbBurger[i].dataValues;
+      }
+  
       var hbsObject = {
-        burgers: data
+        burgers: RowDataPacket_container
       };
-      console.log(hbsObject);
       res.render("index", hbsObject);
     });
   });
 
   router.put("/api/burger/:id", function(req, res) {
-    var condition = "id = " + req.params.id;
-  
-    burger.update({
-        devoured: req.body.devoured
-    }, condition, function(result) {
-      if (result.changedRows == 0) {
-        // If no rows were changed, then the ID must not exist, so 404
-        return res.status(404).end();
-      } else {
-        res.status(200).end();
-      }
-    });
+
+    db.Burgers.update(req.body,
+      {
+        where: {
+          id: req.params.id
+        }
+      })
+      .then(function(dbPost) {
+        res.json(dbPost);
+      });
   });
 
 
   router.post("/api/burger", function(req, res) {
-    burger.create([
-      "burger_name", "devoured"
-    ], [
-      req.body.burger_name, req.body.devoured
-    ], function(result) {
-      // Send back the ID of the new quote
-      res.json({ id: result.insertId });
+
+    var test = { 
+      burger_name: req.body.burger_name,
+      devoured: req.body.devoured
+    };
+    console.log("test: ",test)
+    db.Burgers.create(test).then(function(dbBurgers) {
+      res.json(dbBurgers);
     });
+
   });
   // Export routes for server.js to use.
 module.exports = router;
